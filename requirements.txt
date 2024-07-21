@@ -13,3 +13,10 @@ scipy
 tqdm
 psutil
 gdown
+ultralytics
+opencv-python
+moviepy
+pandas
+matplotlib
+scikit-image
+scikit-learn

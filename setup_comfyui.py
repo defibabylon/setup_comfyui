@@ -1,3 +1,42 @@
+import os
+import subprocess
+import logging
+import sys
+from tqdm import tqdm
+import time
+import requests
+import gdown
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def run_command(command, desc=None):
+    with tqdm(total=1, desc=desc, bar_format='{l_bar}{bar}', disable=desc is None) as pbar:
+        try:
+            subprocess.run(command, shell=True, check=True)
+            pbar.update(1)
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Command failed: {command}")
+            logging.error(e)
+            raise
+
+def download_file(url, dest_path, desc=None):
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    
+    with open(dest_path, 'wb') as file, tqdm(
+        desc=desc,
+        total=total_size,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as pbar:
+        for data in response.iter_content(chunk_size=1024):
+            size = file.write(data)
+            pbar.update(size)
+
+def download_gdrive_file(file_id, dest_path, desc=None):
+    gdown.download(f"https://drive.google.com/uc?id={file_id}", dest_path, quiet=False)
+
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
     
@@ -54,3 +93,22 @@ def setup_comfyui():
             logging.error(f"Failed to install {node}: {e}")
     
     logging.info("Setup complete. You can now run ComfyUI.")
+
+def start_comfyui():
+    logging.info("Starting ComfyUI")
+    os.chdir("/home/Ubuntu/ComfyUI")  # Adjust this path if ComfyUI is installed elsewhere
+    run_command("python main.py --listen 0.0.0.0 --port 8188")
+
+if __name__ == "__main__":
+    try:
+        with tqdm(total=3, desc="Overall Progress", position=0) as pbar:
+            setup_comfyui()
+            pbar.update(2)
+            
+            logging.info("Setup completed successfully")
+            pbar.update(1)
+            
+            logging.info("Starting ComfyUI...")
+            start_comfyui()
+    except Exception as e:
+        logging.error(f"Setup failed: {e}")

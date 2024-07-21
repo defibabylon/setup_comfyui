@@ -96,8 +96,16 @@ def setup_comfyui():
 
 def start_comfyui():
     logging.info("Starting ComfyUI")
-    os.chdir("/home/Ubuntu/ComfyUI")  # Adjust this path if ComfyUI is installed elsewhere
-    run_command("python main.py --listen 0.0.0.0 --port 8188")
+    comfyui_path = os.path.join(os.getcwd(), "ComfyUI")
+    if not os.path.exists(comfyui_path):
+        comfyui_path = os.path.join(os.path.dirname(os.getcwd()), "ComfyUI")
+    
+    if os.path.exists(comfyui_path):
+        os.chdir(comfyui_path)
+        run_command("python main.py --listen 0.0.0.0 --port 8188")
+    else:
+        logging.error(f"ComfyUI directory not found. Expected at: {comfyui_path}")
+        raise FileNotFoundError(f"ComfyUI directory not found. Expected at: {comfyui_path}")
 
 if __name__ == "__main__":
     try:

@@ -1,8 +1,7 @@
 import os
 import subprocess
 import logging
-import gdown
-import zipfile
+import sys
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,12 +13,18 @@ def run_command(command):
         logging.error(e)
         raise
 
+def install_requirements():
+    logging.info("Installing requirements")
+    run_command("pip install -r requirements.txt")
+    
+    # Ensure gdown is installed
+    run_command("pip install gdown")
+    
+    # Restart the script to ensure all imports are available
+    os.execv(sys.executable, ['python'] + sys.argv)
+
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
-
-    # Install dependencies
-    run_command("pip install -r requirements.txt")
-    run_command("pip install gdown")  # Install gdown for Google Drive downloads
 
     # Clone ComfyUI repository
     run_command("git clone https://github.com/comfyanonymous/ComfyUI.git")
@@ -39,6 +44,9 @@ def setup_comfyui():
                 "custom_nodes/ComfyUI_IPAdapter_plus/models", "models/clip_vision", "models/upscale_models"]:
         os.makedirs(dir, exist_ok=True)
 
+    # Import gdown here, after it's installed
+    import gdown
+
     # Download models from Google Drive
     models = {
         "models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors": 
@@ -54,9 +62,10 @@ def setup_comfyui():
     }
 
     for dest, url in models.items():
-        download_file_from_drive(url, dest)
+        gdown.download(url, dest, quiet=False)
 
     # Extract ClearRealityV1.zip
+    import zipfile
     with zipfile.ZipFile("models/upscale_models/ClearRealityV1.zip", 'r') as zip_ref:
         zip_ref.extractall("models/upscale_models")
     os.remove("models/upscale_models/ClearRealityV1.zip")
@@ -66,14 +75,6 @@ def setup_comfyui():
 
     logging.info("Setup complete. You can now run ComfyUI.")
 
-def download_file_from_drive(url, destination):
-    logging.info(f"Downloading {url} to {destination}")
-    try:
-        gdown.download(url, destination, quiet=False)
-    except Exception as e:
-        logging.error(f"Failed to download {url}: {e}")
-        raise
-
 def start_comfyui():
     logging.info("Starting ComfyUI")
     os.chdir("/root/ComfyUI")  # Adjust this path if ComfyUI is installed elsewhere
@@ -81,6 +82,8 @@ def start_comfyui():
 
 if __name__ == "__main__":
     try:
+        if 'gdown' not in sys.modules:
+            install_requirements()
         setup_comfyui()
         start_comfyui()
     except Exception as e:

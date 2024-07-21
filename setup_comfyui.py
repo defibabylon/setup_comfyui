@@ -65,5 +65,12 @@ def download_file(url, destination):
     with open(destination, 'wb') as f:
         f.write(response.content)
 
+def start_comfyui():
+    os.chdir("/root/ComfyUI")  # Adjust this path if ComfyUI is installed elsewhere
+    run_command("python main.py --listen 0.0.0.0 --port 8188")
+
 if __name__ == "__main__":
     setup_comfyui()
+    start_comfyui()
+
+

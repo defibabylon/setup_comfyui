@@ -1,0 +1,14 @@
+torch
+torchvision
+torchaudio
+git+https://github.com/huggingface/diffusers.git
+requests
+numpy
+pillow
+transformers
+safetensors
+aiohttp
+einops
+scipy
+tqdm
+psutil

@@ -12,3 +12,4 @@ einops
 scipy
 tqdm
 psutil
+gdown

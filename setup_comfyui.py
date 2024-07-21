@@ -4,6 +4,8 @@ import logging
 import sys
 from tqdm import tqdm
 import time
+import requests
+import gdown
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -17,25 +19,62 @@ def run_command(command, desc=None):
             logging.error(e)
             raise
 
-def install_requirements():
-    logging.info("Installing requirements")
-    run_command("pip install -r requirements.txt", "Installing pip requirements")
-    run_command("pip install gdown tqdm", "Installing gdown and tqdm")
-    logging.info("Requirements installed successfully")
+def download_file(url, dest_path, desc=None):
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    
+    with open(dest_path, 'wb') as file, tqdm(
+        desc=desc,
+        total=total_size,
+        unit='iB',
+        unit_scale=True,
+        unit_divisor=1024,
+    ) as pbar:
+        for data in response.iter_content(chunk_size=1024):
+            size = file.write(data)
+            pbar.update(size)
+
+def download_gdrive_file(file_id, dest_path, desc=None):
+    gdown.download(f"https://drive.google.com/uc?id={file_id}", dest_path, quiet=False)
 
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
     
+    # Clone ComfyUI repository
     run_command("git clone https://github.com/comfyanonymous/ComfyUI.git", "Cloning ComfyUI repository")
     os.chdir("ComfyUI")
     
+    # Install ComfyUI requirements
     run_command("pip install -r requirements.txt", "Installing ComfyUI requirements")
     
+    # Install ComfyUI Manager
     os.makedirs("custom_nodes", exist_ok=True)
     os.chdir("custom_nodes")
     run_command("git clone https://github.com/ltdrdata/ComfyUI-Manager.git", "Cloning ComfyUI Manager")
     os.chdir("..")
     
+    # Create model directories
+    for dir in ["models/checkpoints", "models/controlnet/sdxl", 
+                "models/clip_vision", "models/ipadapter", "models/upscale_models"]:
+        os.makedirs(dir, exist_ok=True)
+    
+    # Download models
+    clip_models = [
+        ("https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/resolve/main/model.safetensors",
+         "models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"),
+        ("https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k/resolve/main/model.safetensors",
+         "models/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors")
+    ]
+    
+    for url, path in clip_models:
+        download_file(url, path, f"Downloading {os.path.basename(path)}")
+    
+    # Download IPAdapter models (example)
+    download_gdrive_file("1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX", 
+                         "models/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors",
+                         "Downloading IPAdapter model")
+    
+    # Install custom nodes
     custom_nodes = [
         "ComfyUI_IPAdapter_plus",
         "ComfyUI_essentials"
@@ -44,26 +83,6 @@ def setup_comfyui():
     for node in tqdm(custom_nodes, desc="Installing custom nodes"):
         run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install {node}")
         time.sleep(1)
-    
-    models = {
-        "checkpoints": ["wildcardxXLTURBO_wildcardxXLTURBOV10"],
-        "clip_vision": ["CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP-ViT-bigG-14-laion2B-39B-b160k"],
-        "upscale_models": ["4x-ClearRealityV1"],
-        "controlnet": ["controlnet-mid-sd15-diffusers-v1"]
-    }
-    
-    total_models = sum(len(model_list) for model_list in models.values())
-    with tqdm(total=total_models, desc="Downloading models") as pbar:
-        for model_type, model_list in models.items():
-            for model in model_list:
-                run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install-model {model_type}/{model}")
-                pbar.update(1)
-                time.sleep(1)
-    
-    import gdown
-    logging.info("Downloading IP-Adapter model")
-    gdown.download("https://drive.google.com/uc?id=1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX", 
-                   "custom_nodes/ComfyUI_IPAdapter_plus/models/ip-adapter-plus_sdxl_vit-h.safetensors", quiet=False)
     
     logging.info("Setup complete. You can now run ComfyUI.")
 
@@ -74,10 +93,7 @@ def start_comfyui():
 
 if __name__ == "__main__":
     try:
-        with tqdm(total=4, desc="Overall Progress", position=0) as pbar:
-            install_requirements()
-            pbar.update(1)
-            
+        with tqdm(total=3, desc="Overall Progress", position=0) as pbar:
             setup_comfyui()
             pbar.update(2)
             

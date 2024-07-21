@@ -1,7 +1,8 @@
 import os
 import subprocess
-import requests
 import logging
+import gdown
+import zipfile
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,6 +19,7 @@ def setup_comfyui():
 
     # Install dependencies
     run_command("pip install -r requirements.txt")
+    run_command("pip install gdown")  # Install gdown for Google Drive downloads
 
     # Clone ComfyUI repository
     run_command("git clone https://github.com/comfyanonymous/ComfyUI.git")
@@ -34,39 +36,41 @@ def setup_comfyui():
 
     # Create model directories
     for dir in ["models/checkpoints", "models/controlnet/sdxl", 
-                "custom_nodes/ComfyUI_IPAdapter_plus/models", "models/clip_vision"]:
+                "custom_nodes/ComfyUI_IPAdapter_plus/models", "models/clip_vision", "models/upscale_models"]:
         os.makedirs(dir, exist_ok=True)
 
-    # Download models
+    # Download models from Google Drive
     models = {
-        "models/checkpoints/wildcardx-xl-turbo.safetensors": 
-            "https://civitai.com/api/download/models/293331",  # Replace with actual URL
-        "models/controlnet/sdxl/mistoLine_rank256.safetensors": 
-            "https://huggingface.co/TheMistoAI/MistoLine/resolve/main/mistoLine_rank256.safetensors",
-        "custom_nodes/ComfyUI_IPAdapter_plus/models/ip-adapter-plus_sdxl_vit-h.safetensors": 
-            "https://huggingface.co/h94/IP-Adapter/resolve/main/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors",
         "models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors": 
-            "https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/resolve/main/model.safetensors",
+            "https://drive.google.com/uc?id=1HZygGQhhLr_w0jHqVfeYC4CwUdwbOk8N",
         "models/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors": 
-            "https://huggingface.co/laion/CLIP-ViT-bigG-14-laion2B-39B-b160k/resolve/main/model.safetensors"
+            "https://drive.google.com/uc?id=1mtd4NWSIu-pIqFBLld_DHUBlU9tHX-To",
+        "models/upscale_models/ClearRealityV1.zip": 
+            "https://drive.google.com/uc?id=1YOSexwiKYtb6BJ9iuIQXTNsTpNYNoJRh",
+        "custom_nodes/ComfyUI_IPAdapter_plus/models/ip-adapter-plus_sdxl_vit-h.safetensors": 
+            "https://drive.google.com/uc?id=1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX",
+        "models/checkpoints/wildcardxXLTURBO_wildcardxXLTURBOV10.safetensors": 
+            "https://drive.google.com/uc?id=1-6dyenykoPUwZa48PBNNIsRKHogvO-t0"
     }
 
     for dest, url in models.items():
-        download_file(url, dest)
+        download_file_from_drive(url, dest)
+
+    # Extract ClearRealityV1.zip
+    with zipfile.ZipFile("models/upscale_models/ClearRealityV1.zip", 'r') as zip_ref:
+        zip_ref.extractall("models/upscale_models")
+    os.remove("models/upscale_models/ClearRealityV1.zip")
 
     # Install ComfyUI Essentials
     run_command("git clone https://github.com/cubiq/ComfyUI_essentials.git custom_nodes/ComfyUI_essentials")
 
     logging.info("Setup complete. You can now run ComfyUI.")
 
-def download_file(url, destination):
+def download_file_from_drive(url, destination):
     logging.info(f"Downloading {url} to {destination}")
     try:
-        response = requests.get(url)
-        response.raise_for_status()
-        with open(destination, 'wb') as f:
-            f.write(response.content)
-    except requests.RequestException as e:
+        gdown.download(url, destination, quiet=False)
+    except Exception as e:
         logging.error(f"Failed to download {url}: {e}")
         raise
 

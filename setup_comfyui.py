@@ -69,7 +69,7 @@ def setup_comfyui():
     for url, path in clip_models:
         download_file(url, path, f"Downloading {os.path.basename(path)}")
     
-    # Download IPAdapter models (example)
+    # Download IPAdapter model (example)
     download_gdrive_file("1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX", 
                          "models/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors",
                          "Downloading IPAdapter model")
@@ -77,7 +77,16 @@ def setup_comfyui():
     # Install custom nodes
     custom_nodes = [
         "ComfyUI_IPAdapter_plus",
-        "ComfyUI_essentials"
+        "ComfyUI_essentials",
+        "ComfyUI-Advanced-ControlNet",
+        "ComfyUI-Impact-Pack",
+        "ComfyUI-AnimateDiff-Evolved",
+        "ComfyUI-VideoHelperSuite",
+        "ComfyUI-Frame-Interpolation",
+        "ComfyUI-Manager",
+        "ComfyUI-Custom-Scripts",
+        "ComfyUI-Noise",
+        "MTB-ComfyUI-nodes"
     ]
     
     for node in tqdm(custom_nodes, desc="Installing custom nodes"):
@@ -120,3 +129,4 @@ if __name__ == "__main__":
             start_comfyui()
     except Exception as e:
         logging.error(f"Setup failed: {e}")
+        sys.exit(1)

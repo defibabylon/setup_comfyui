@@ -2,25 +2,16 @@ import os
 import subprocess
 import logging
 import sys
-import json
 from tqdm import tqdm
 import time
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def run_command(command, desc=None):
-    if desc:
-        with tqdm(total=1, desc=desc, bar_format='{l_bar}{bar}') as pbar:
-            try:
-                subprocess.run(command, shell=True, check=True)
-                pbar.update(1)
-            except subprocess.CalledProcessError as e:
-                logging.error(f"Command failed: {command}")
-                logging.error(e)
-                raise
-    else:
+    with tqdm(total=1, desc=desc, bar_format='{l_bar}{bar}', disable=desc is None) as pbar:
         try:
             subprocess.run(command, shell=True, check=True)
+            pbar.update(1)
         except subprocess.CalledProcessError as e:
             logging.error(f"Command failed: {command}")
             logging.error(e)
@@ -30,26 +21,21 @@ def install_requirements():
     logging.info("Installing requirements")
     run_command("pip install -r requirements.txt", "Installing pip requirements")
     run_command("pip install gdown tqdm", "Installing gdown and tqdm")
-    logging.info("Restarting script with updated dependencies")
-    os.execv(sys.executable, ['python'] + sys.argv)
+    logging.info("Requirements installed successfully")
 
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
     
-    # Clone ComfyUI repository
     run_command("git clone https://github.com/comfyanonymous/ComfyUI.git", "Cloning ComfyUI repository")
     os.chdir("ComfyUI")
     
-    # Install ComfyUI requirements
     run_command("pip install -r requirements.txt", "Installing ComfyUI requirements")
     
-    # Install ComfyUI Manager
     os.makedirs("custom_nodes", exist_ok=True)
     os.chdir("custom_nodes")
     run_command("git clone https://github.com/ltdrdata/ComfyUI-Manager.git", "Cloning ComfyUI Manager")
     os.chdir("..")
     
-    # Use ComfyUI Manager to install custom nodes
     custom_nodes = [
         "ComfyUI_IPAdapter_plus",
         "ComfyUI_essentials"
@@ -57,9 +43,8 @@ def setup_comfyui():
     
     for node in tqdm(custom_nodes, desc="Installing custom nodes"):
         run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install {node}")
-        time.sleep(1)  # Add a small delay to ensure output is visible
+        time.sleep(1)
     
-    # Download models using ComfyUI Manager
     models = {
         "checkpoints": ["wildcardxXLTURBO_wildcardxXLTURBOV10"],
         "clip_vision": ["CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP-ViT-bigG-14-laion2B-39B-b160k"],
@@ -73,9 +58,8 @@ def setup_comfyui():
             for model in model_list:
                 run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install-model {model_type}/{model}")
                 pbar.update(1)
-                time.sleep(1)  # Add a small delay to ensure output is visible
+                time.sleep(1)
     
-    # Download IP-Adapter model separately
     import gdown
     logging.info("Downloading IP-Adapter model")
     gdown.download("https://drive.google.com/uc?id=1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX", 
@@ -90,14 +74,12 @@ def start_comfyui():
 
 if __name__ == "__main__":
     try:
-        total_steps = 5  # Adjust this based on the number of main steps in your setup
-        with tqdm(total=total_steps, desc="Overall Progress", position=0) as pbar:
-            if 'gdown' not in sys.modules:
-                install_requirements()
-                pbar.update(1)
+        with tqdm(total=4, desc="Overall Progress", position=0) as pbar:
+            install_requirements()
+            pbar.update(1)
             
             setup_comfyui()
-            pbar.update(3)  # Assuming setup_comfyui is worth 3 steps
+            pbar.update(2)
             
             logging.info("Setup completed successfully")
             pbar.update(1)

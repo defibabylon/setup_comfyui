@@ -2,6 +2,7 @@ import os
 import subprocess
 import logging
 import sys
+import json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,63 +17,51 @@ def run_command(command):
 def install_requirements():
     logging.info("Installing requirements")
     run_command("pip install -r requirements.txt")
-    
-    # Ensure gdown is installed
     run_command("pip install gdown")
-    
-    # Restart the script to ensure all imports are available
     os.execv(sys.executable, ['python'] + sys.argv)
 
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
-
+    
     # Clone ComfyUI repository
     run_command("git clone https://github.com/comfyanonymous/ComfyUI.git")
     os.chdir("ComfyUI")
-
+    
     # Install ComfyUI requirements
     run_command("pip install -r requirements.txt")
-
+    
     # Install ComfyUI Manager
     os.makedirs("custom_nodes", exist_ok=True)
     os.chdir("custom_nodes")
     run_command("git clone https://github.com/ltdrdata/ComfyUI-Manager.git")
     os.chdir("..")
-
-    # Create model directories
-    for dir in ["models/checkpoints", "models/controlnet/sdxl", 
-                "custom_nodes/ComfyUI_IPAdapter_plus/models", "models/clip_vision", "models/upscale_models"]:
-        os.makedirs(dir, exist_ok=True)
-
-    # Import gdown here, after it's installed
-    import gdown
-
-    # Download models from Google Drive
+    
+    # Use ComfyUI Manager to install custom nodes
+    custom_nodes = [
+        "ComfyUI_IPAdapter_plus",
+        "ComfyUI_essentials"
+    ]
+    
+    for node in custom_nodes:
+        run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install {node}")
+    
+    # Download models using ComfyUI Manager
     models = {
-        "models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors": 
-            "https://drive.google.com/uc?id=1HZygGQhhLr_w0jHqVfeYC4CwUdwbOk8N",
-        "models/clip_vision/CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors": 
-            "https://drive.google.com/uc?id=1mtd4NWSIu-pIqFBLld_DHUBlU9tHX-To",
-        "models/upscale_models/ClearRealityV1.zip": 
-            "https://drive.google.com/uc?id=1YOSexwiKYtb6BJ9iuIQXTNsTpNYNoJRh",
-        "custom_nodes/ComfyUI_IPAdapter_plus/models/ip-adapter-plus_sdxl_vit-h.safetensors": 
-            "https://drive.google.com/uc?id=1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX",
-        "models/checkpoints/wildcardxXLTURBO_wildcardxXLTURBOV10.safetensors": 
-            "https://drive.google.com/uc?id=1-6dyenykoPUwZa48PBNNIsRKHogvO-t0"
+        "checkpoints": ["wildcardxXLTURBO_wildcardxXLTURBOV10"],
+        "clip_vision": ["CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP-ViT-bigG-14-laion2B-39B-b160k"],
+        "upscale_models": ["4x-ClearRealityV1"],
+        "controlnet": ["controlnet-mid-sd15-diffusers-v1"]
     }
-
-    for dest, url in models.items():
-        gdown.download(url, dest, quiet=False)
-
-    # Extract ClearRealityV1.zip
-    import zipfile
-    with zipfile.ZipFile("models/upscale_models/ClearRealityV1.zip", 'r') as zip_ref:
-        zip_ref.extractall("models/upscale_models")
-    os.remove("models/upscale_models/ClearRealityV1.zip")
-
-    # Install ComfyUI Essentials
-    run_command("git clone https://github.com/cubiq/ComfyUI_essentials.git custom_nodes/ComfyUI_essentials")
-
+    
+    for model_type, model_list in models.items():
+        for model in model_list:
+            run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install-model {model_type}/{model}")
+    
+    # Download IP-Adapter model separately as it might not be in the default model list
+    import gdown
+    gdown.download("https://drive.google.com/uc?id=1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX", 
+                   "custom_nodes/ComfyUI_IPAdapter_plus/models/ip-adapter-plus_sdxl_vit-h.safetensors", quiet=False)
+    
     logging.info("Setup complete. You can now run ComfyUI.")
 
 def start_comfyui():

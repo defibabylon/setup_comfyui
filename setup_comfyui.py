@@ -39,9 +39,14 @@ def download_gdrive_file(file_id, dest_path, desc=None):
 
 def install_comfyui3d_wheels():
     logging.info("Installing ComfyUI3D dependencies")
+
+    # Ensure CUDA environment variables are set
+    os.environ['CUDA_HOME'] = '/usr/local/cuda-11.6'
+    os.environ['PATH'] = f"/usr/local/cuda-11.6/bin:{os.environ['PATH']}"
+    os.environ['LD_LIBRARY_PATH'] = f"/usr/local/cuda-11.6/lib64:{os.environ.get('LD_LIBRARY_PATH', '')}"
     
-    # Install pytorch3d from source
-    run_command("pip install 'git+https://github.com/facebookresearch/pytorch3d.git'", "Installing pytorch3d from source")
+    # Install pytorch3d from source with CUDA support
+    run_command("pip install 'git+https://github.com/facebookresearch/pytorch3d.git@stable'", "Installing pytorch3d from source")
     
     wheels = [
         "nvdiffrast-0.3.1-py3-none-any.whl",

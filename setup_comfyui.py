@@ -38,10 +38,12 @@ def download_gdrive_file(file_id, dest_path, desc=None):
     gdown.download(f"https://drive.google.com/uc?id={file_id}", dest_path, quiet=False)
 
 def install_comfyui3d_wheels():
-    logging.info("Installing ComfyUI3D-Assorted-Wheels")
+    logging.info("Installing ComfyUI3D dependencies")
+    
+    # Install pytorch3d from source
+    run_command("pip install 'git+https://github.com/facebookresearch/pytorch3d.git'", "Installing pytorch3d from source")
     
     wheels = [
-        "pytorch3d-0.7.5-cp311-cp311-linux_x86_64.whl",
         "nvdiffrast-0.3.1-py3-none-any.whl",
         "diff_gaussian_rasterization-0.0.0-cp311-cp311-linux_x86_64.whl",
         "pointnet2_ops-3.0.0-cp311-cp311-linux_x86_64.whl",

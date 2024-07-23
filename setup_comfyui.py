@@ -37,38 +37,56 @@ def download_file(url, dest_path, desc=None):
 def download_gdrive_file(file_id, dest_path, desc=None):
     gdown.download(f"https://drive.google.com/uc?id={file_id}", dest_path, quiet=False)
 
+def install_comfyui3d_wheels():
+    logging.info("Installing ComfyUI3D-Assorted-Wheels")
+    
+    wheels = [
+        "pytorch3d-0.7.5-cp311-cp311-linux_x86_64.whl",
+        "nvdiffrast-0.3.1-py3-none-any.whl",
+        "diff_gaussian_rasterization-0.0.0-cp311-cp311-linux_x86_64.whl",
+        "pointnet2_ops-3.0.0-cp311-cp311-linux_x86_64.whl",
+        "simple_knn-0.0.0-cp311-cp311-linux_x86_64.whl",
+        "torch_scatter-2.1.2-cp311-cp311-linux_x86_64.whl"
+    ]
+    
+    base_url = "https://github.com/remsky/ComfyUI3D-Assorted-Wheels/raw/main/"
+    
+    for wheel in wheels:
+        url = base_url + wheel
+        dest_path = os.path.join("custom_nodes", wheel)
+        download_file(url, dest_path, f"Downloading {wheel}")
+        run_command(f"pip install {dest_path}", f"Installing {wheel}")
+    
+    run_command("git clone https://github.com/MrForExample/ComfyUI-3D-Pack.git custom_nodes/ComfyUI-3D-Pack",
+                "Cloning ComfyUI-3D-Pack")
+    run_command("pip install -r custom_nodes/ComfyUI-3D-Pack/requirements.txt",
+                "Installing ComfyUI-3D-Pack requirements")
+
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
     
-    # Clone ComfyUI repository
     run_command("git clone https://github.com/comfyanonymous/ComfyUI.git", "Cloning ComfyUI repository")
     os.chdir("ComfyUI")
     
-    # Install ComfyUI requirements
     run_command("pip install -r requirements.txt", "Installing ComfyUI requirements")
     
-    # Install ComfyUI Manager
     os.makedirs("custom_nodes", exist_ok=True)
     os.chdir("custom_nodes")
     run_command("git clone https://github.com/ltdrdata/ComfyUI-Manager.git", "Cloning ComfyUI Manager")
     os.chdir("..")
     
-    # Create model directories
     for dir in ["models/checkpoints", "models/controlnet/sdxl", 
                 "models/clip_vision", "models/ipadapter", "models/upscale_models"]:
         os.makedirs(dir, exist_ok=True)
     
-    # Download WildcardXL Turbo model
     download_gdrive_file("1-6dyenykoPUwZa48PBNNIsRKHogvO-t0", 
                          "models/checkpoints/wildcardxXLTURBO_wildcardxXLTURBOV10.safetensors",
                          "Downloading WildcardXL Turbo model")
     
-    # Download mistoLine_rank256.safetensors
     download_file("https://huggingface.co/TheMistoAI/MistoLine/resolve/main/mistoLine_rank256.safetensors",
                   "models/controlnet/sdxl/mistoLine_rank256.safetensors",
                   "Downloading mistoLine_rank256.safetensors")
     
-    # Download models
     clip_models = [
         ("https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/resolve/main/model.safetensors",
          "models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"),
@@ -79,12 +97,10 @@ def setup_comfyui():
     for url, path in clip_models:
         download_file(url, path, f"Downloading {os.path.basename(path)}")
     
-    # Download IPAdapter model (example)
     download_gdrive_file("1MFbP9_SwbylBUuv1W5RIleBUt5y8LBiX", 
                          "models/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors",
                          "Downloading IPAdapter model")
     
-    # Install custom nodes
     custom_nodes = [
         "ComfyUI_IPAdapter_plus",
         "ComfyUI_essentials",
@@ -110,6 +126,8 @@ def setup_comfyui():
             time.sleep(1)
         except Exception as e:
             logging.error(f"Failed to install {node}: {e}")
+    
+    install_comfyui3d_wheels()
     
     logging.info("Setup complete. You can now run ComfyUI.")
 

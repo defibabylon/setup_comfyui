@@ -37,38 +37,6 @@ def download_file(url, dest_path, desc=None):
 def download_gdrive_file(file_id, dest_path, desc=None):
     gdown.download(f"https://drive.google.com/uc?id={file_id}", dest_path, quiet=False)
 
-def install_comfyui3d_wheels():
-    logging.info("Installing ComfyUI3D dependencies")
-
-    # Ensure CUDA environment variables are set
-    os.environ['CUDA_HOME'] = '/usr/local/cuda-11.6'
-    os.environ['PATH'] = f"/usr/local/cuda-11.6/bin:{os.environ['PATH']}"
-    os.environ['LD_LIBRARY_PATH'] = f"/usr/local/cuda-11.6/lib64:{os.environ.get('LD_LIBRARY_PATH', '')}"
-    
-    # Install pytorch3d from source with CUDA support
-    run_command("pip install 'git+https://github.com/facebookresearch/pytorch3d.git@stable'", "Installing pytorch3d from source")
-    
-    wheels = [
-        "nvdiffrast-0.3.1-py3-none-any.whl",
-        "diff_gaussian_rasterization-0.0.0-cp311-cp311-linux_x86_64.whl",
-        "pointnet2_ops-3.0.0-cp311-cp311-linux_x86_64.whl",
-        "simple_knn-0.0.0-cp311-cp311-linux_x86_64.whl",
-        "torch_scatter-2.1.2-cp311-cp311-linux_x86_64.whl"
-    ]
-    
-    base_url = "https://github.com/remsky/ComfyUI3D-Assorted-Wheels/raw/main/"
-    
-    for wheel in wheels:
-        url = base_url + wheel
-        dest_path = os.path.join("custom_nodes", wheel)
-        download_file(url, dest_path, f"Downloading {wheel}")
-        run_command(f"pip install {dest_path}", f"Installing {wheel}")
-    
-    run_command("git clone https://github.com/MrForExample/ComfyUI-3D-Pack.git custom_nodes/ComfyUI-3D-Pack",
-                "Cloning ComfyUI-3D-Pack")
-    run_command("pip install -r custom_nodes/ComfyUI-3D-Pack/requirements.txt",
-                "Installing ComfyUI-3D-Pack requirements")
-
 def setup_comfyui():
     logging.info("Starting ComfyUI setup")
     
@@ -84,9 +52,6 @@ def setup_comfyui():
     os.chdir("custom_nodes")
     run_command("git clone https://github.com/ltdrdata/ComfyUI-Manager.git", "Cloning ComfyUI Manager")
     os.chdir("..")
-    
-    # Install ComfyUI Manager requirements
-    run_command("pip install -r custom_nodes/ComfyUI-Manager/requirements.txt", "Installing ComfyUI Manager requirements")
     
     # Create model directories
     for dir in ["models/checkpoints", "models/controlnet/sdxl", 
@@ -126,12 +91,15 @@ def setup_comfyui():
     
     for node in tqdm(custom_nodes, desc="Installing custom nodes"):
         try:
-            run_command(f"python custom_nodes/ComfyUI-Manager/custom_nodes_picker.py --install {node}")
+            if os.path.exists("custom_nodes/ComfyUI-Manager/custom_nodes_picker.py"):
+                run_command(f"python custom_nodes/ComfyUI-Manager/custom_nodes_picker.py --install {node}")
+            elif os.path.exists("custom_nodes/ComfyUI-Manager/cm.py"):
+                run_command(f"python custom_nodes/ComfyUI-Manager/cm.py --install {node}")
+            else:
+                logging.warning(f"ComfyUI Manager installation script not found. Skipping installation of {node}")
             time.sleep(1)
         except Exception as e:
             logging.error(f"Failed to install {node}: {e}")
-    
-    install_comfyui3d_wheels()
     
     logging.info("Setup complete. You can now run ComfyUI.")
 

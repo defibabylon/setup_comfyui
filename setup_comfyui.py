@@ -58,6 +58,16 @@ def setup_comfyui():
                 "models/clip_vision", "models/ipadapter", "models/upscale_models"]:
         os.makedirs(dir, exist_ok=True)
     
+    # Download WildcardXL Turbo model
+    download_gdrive_file("1-6dyenykoPUwZa48PBNNIsRKHogvO-t0", 
+                         "models/checkpoints/wildcardxXLTURBO_wildcardxXLTURBOV10.safetensors",
+                         "Downloading WildcardXL Turbo model")
+    
+    # Download mistoLine_rank256.safetensors
+    download_file("https://huggingface.co/TheMistoAI/MistoLine/resolve/main/mistoLine_rank256.safetensors",
+                  "models/controlnet/sdxl/mistoLine_rank256.safetensors",
+                  "Downloading mistoLine_rank256.safetensors")
+    
     # Download models
     clip_models = [
         ("https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K/resolve/main/model.safetensors",
